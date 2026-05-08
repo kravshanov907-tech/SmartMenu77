@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <title>GALAXY RESTO | MEGA EDITION</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Poppins:wght@400;700;900&display=swap');
+        
+        body { background: #020205; color: #fff; font-family: 'Poppins', sans-serif; overflow-x: hidden; margin: 0; }
+        #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .menu-item-anim { animation: fadeInUp 0.5s ease forwards; opacity: 0; }
+        
+        .gold-text { background: linear-gradient(135deg, #D4AF37, #fcf6ba, #B8860B); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .glass { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(20px); }
+        .active-cat { background: #D4AF37 !important; color: #000 !important; font-weight: 900; box-shadow: 0 0 20px #D4AF37; }
+
+        .wheel-container { position: relative; width: 280px; height: 280px; margin: 0 auto; border: 8px solid #1a1a1a; border-radius: 50%; }
+        #wheel { width: 100%; height: 100%; border-radius: 50%; position: relative; transition: transform 4s cubic-bezier(0.1, 0, 0, 1); overflow: hidden; border: 2px solid #D4AF37; }
+        .pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 30px; height: 40px; background: #D4AF37; clip-path: polygon(50% 100%, 0 0, 100% 0); z-index: 100; }
+        .sector { position: absolute; width: 50%; height: 50%; transform-origin: 100% 100%; left: 0; top: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 900; }
+        
+        .s-super { background: radial-gradient(circle, #D4AF37, #B8860B); color: #000; } 
+        .s-cheap { background: #1a1a1a; color: #fff; } 
+        .s-empty { background: #300; color: #fff; } 
+        .s-coin { background: #002d5a; color: #D4AF37; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <header class="glass sticky top-0 z-[60] p-5 flex justify-between items-center border-b border-white/10">
+        <h1 style="font-family: 'Orbitron';" class="text-2xl font-black gold-text italic">GALAXY RESTO</h1>
+        <div class="flex gap-3">
+            <div class="glass px-4 py-2 rounded-xl text-center border-yellow-600/30">
+                <p class="text-[7px] text-zinc-400 uppercase font-black">Tickets</p>
+                <span id="t-val" class="text-yellow-500 text-xl font-black">0</span>
+            </div>
+            <div class="glass px-4 py-2 rounded-xl text-center border-blue-600/30">
+                <p class="text-[7px] text-zinc-400 uppercase font-black">Galaxy Coin</p>
+                <span id="coin-val" class="text-blue-400 text-xl font-black">0</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1600px] mx-auto p-4 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div class="lg:col-span-8">
+            <div id="cat-nav" class="flex gap-3 overflow-x-auto pb-6 sticky top-24 z-40 py-2 no-scrollbar"></div>
+            <div id="menu-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+        </div>
+
+        <div class="lg:col-span-4">
+            <div class="glass p-8 rounded-[2.5rem] border border-white/10 sticky top-24">
+                <h3 class="gold-text font-black text-center mb-6 uppercase text-sm italic tracking-widest">Savatcha</h3>
+                
+                <div class="space-y-3 mb-6 text-black">
+                    <input id="uName" type="text" placeholder="ISMINGIZ" class="w-full bg-white/10 p-4 rounded-2xl text-xs border border-white/10 font-bold text-white outline-none focus:border-yellow-600">
+                    <input id="uPhone" type="tel" placeholder="+998" class="w-full bg-white/10 p-4 rounded-2xl text-xs border border-white/10 font-bold text-white outline-none focus:border-yellow-600">
+                </div>
+
+                <div id="cart-list" class="space-y-2 mb-6 max-h-[300px] overflow-y-auto pr-2 no-scrollbar text-[10px]"></div>
+
+                <div class="flex justify-between items-center py-6 border-t border-white/10">
+                    <span id="total-sum" class="text-4xl font-black text-yellow-500">0</span>
+                    <span class="text-xs font-bold text-yellow-600">UZS</span>
+                </div>
+
+                <button onclick="confirmOrder()" class="w-full py-5 bg-yellow-600 text-black font-black rounded-2xl uppercase text-xs hover:brightness-110 active:scale-95 transition-all shadow-lg">BUYURTMA BERISH</button>
+
+                <div id="wheel-card" class="mt-8 pt-8 border-t border-white/10 hidden">
+                    <h4 class="text-center gold-text text-[10px] font-black mb-4 uppercase italic">Yutuqli baraban</h4>
+                    <div class="wheel-container scale-90">
+                        <div class="pointer"></div>
+                        <div id="wheel"></div>
+                    </div>
+                    <button id="spin-btn" onclick="spinNow()" class="w-full py-4 bg-white text-black font-black rounded-2xl mt-6 uppercase text-[10px] hover:bg-yellow-500 transition-all">AYLANTIRISH</button>
+                    <p id="win-msg" class="mt-4 font-black text-yellow-500 text-xs uppercase italic text-center"></p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let cart = [], tickets = 0, coins = 0, isSpinning = false;
+
+        const DATA = {
+            "KOMBOLAR": [
+                {n: "Kings Feast", p: 1200000, t: "5ta Pizza, 10ta Burger, 10ta Lavash, 10L ichimlik, 10ta Fri.", s: "👑"},
+                {n: "Galaxy Family", p: 350000, t: "2ta Pizza, 4ta Lavash, 2L Cola, 4ta Fri, 4ta Sous.", s: "🍱"},
+                {n: "Office Party", p: 620000, t: "5ta Burger, 5ta Lavash, 10ta Naggets, 3L Pepsi.", s: "🏢"},
+                {n: "Students Mix", p: 120000, t: "2ta Hot-dog, 2ta Mini Lavash, 1L Cola, 2ta Fri.", s: "🎓"},
+                {n: "Night Gamer", p: 145000, t: "Katta Fri, 12ta Naggets, 2ta Energy, Sous.", s: "🎮"},
+                {n: "Couple Mix", p: 180000, t: "2ta Burger, 2ta Lavash, 1L Pepsi, 2ta Fri.", s: "❤️"},
+                {n: "Cheese Combo", p: 155000, t: "Pishloqli Pizza, Pishloqli Lavash, 2ta Cola 0.5.", s: "🧀"},
+                {n: "Mega 4", p: 280000, t: "4ta Lavash, 4ta Fri, 1.5L Cola, 4ta Sous.", s: "⚡"},
+                {n: "Pizza Party", p: 310000, t: "3ta Katta Pizza, 1.5L Pepsi, 2ta Fri.", s: "🍕"},
+                {n: "Hot-Dog Set", p: 85000, t: "4ta Hot-dog, 1L Fanta, 1ta Katta Fri.", s: "🌭"},
+                {n: "Diet Combo", p: 90000, t: "2ta FIT Lavash, 2ta Mineral suv, 2ta Salat.", s: "🥗"},
+                {n: "Morning Box", p: 65000, t: "2ta Sendvich, 2ta Kofe, 1ta Mevali salat.", s: "☕"},
+                {n: "Burger Boom", p: 220000, t: "4ta Cheeseburger, 4ta Fri, 1.5L Cola.", s: "🍔"},
+                {n: "Wings Combo", p: 140000, t: "20ta Qanotcha, Katta Fri, 2ta Energy.", s: "🍗"},
+                {n: "Galaxy Solo", p: 55000, t: "1ta Lavash, 1ta Fri, 0.5L Cola.", s: "🚀"}
+            ],
+            "LAVASHLAR": Array.from({length: 15}, (_, i) => ({n: `Lavash ${i+1}`, p: 30000 + (i*2000), t: "Yangi go'sht, chips, maxsus Galaxy oq sousi.", s: "🌯"})),
+            "BURGERLAR": Array.from({length: 15}, (_, i) => ({n: `Burger ${i+1}`, p: 25000 + (i*3000), t: "Juicy kotlet, Cheddar pishlog'i, yangi bulochka.", s: "🍔"})),
+            "PIZZALAR": Array.from({length: 15}, (_, i) => ({n: `Pizza ${i+1}`, p: 70000 + (i*5000), t: "Mozzarella, maxsus xamir va boyitilgan tarkib.", s: "🍕"})),
+            "ICHIMLIKLAR": Array.from({length: 15}, (_, i) => ({n: `Drink ${i+1}`, p: 5000 + (i*2000), t: "Muzdek va tetiklantiruvchi.", s: "🥤"})),
+            "SALATLAR": Array.from({length: 15}, (_, i) => ({n: `Salad ${i+1}`, p: 15000 + (i*2000), t: "Vitaminlarga boy va yangi mahsulotlar.", s: "🥗"}))
+        };
+
+        const prizes = [
+            { n: "FAMILY COMBO", c: "s-super", s: "🍱", type: "food" },
+            { n: "COCA-COLA 0.5L", c: "s-cheap", s: "🥤", type: "food" },
+            { n: "KICHIK FRI", c: "s-cheap", s: "🍟", type: "food" },
+            { n: "OMAD KELMADI", c: "s-empty", s: "💀", type: "none" },
+            { n: "MAXSUS SOUS", c: "s-cheap", s: "🥫", type: "food" },
+            { n: "MINI BURGER", c: "s-cheap", s: "🍔", type: "food" },
+            { n: "1000 COIN", c: "s-coin", s: "💰", type: "coin" },
+            { n: "500 COIN", c: "s-coin", s: "💰", type: "coin" },
+            { n: "200 COIN", c: "s-coin", s: "💰", type: "coin" },
+            { n: "100 COIN", c: "s-coin", s: "💰", type: "coin" }
+        ];
+
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        function initStars() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            stars = Array.from({length: 150}, () => ({
+                x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                size: Math.random() * 2, speed: Math.random() * 0.5
+            }));
+        }
+        function drawStars() {
+            ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle = '#fff';
+            stars.forEach(s => {
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
+                s.y += s.speed; if(s.y > canvas.height) s.y = 0;
+            });
+            requestAnimationFrame(drawStars);
+        }
+
+        function init() {
+            initStars(); drawStars();
+            const w = document.getElementById('wheel');
+            prizes.forEach((p, i) => {
+                const el = document.createElement('div');
+                el.className = `sector ${p.c}`;
+                el.style.transform = `rotate(${i * 36}deg) skewY(-54deg)`;
+                const txt = document.createElement('div');
+                txt.innerHTML = `${p.s}<br>${p.n.split(' ')[0]}`;
+                txt.style.transform = `skewY(54deg) rotate(18deg) translate(35px, 45px)`;
+                el.appendChild(txt); w.appendChild(el);
+            });
+
+            const nav = document.getElementById('cat-nav');
+            Object.keys(DATA).forEach((cat, idx) => {
+                const b = document.createElement('button');
+                b.className = "cat-item px-6 py-3 glass rounded-2xl text-[10px] font-black uppercase whitespace-nowrap transition-all";
+                b.innerText = cat;
+                b.onclick = (e) => loadMenu(cat, e.target);
+                nav.appendChild(b);
+                if(idx === 0) loadMenu(cat, b);
+            });
+        }
+
+        function loadMenu(cat, btn) {
+            document.querySelectorAll('.cat-item').forEach(x => x.classList.remove('active-cat'));
+            btn.classList.add('active-cat');
+            const grid = document.getElementById('menu-grid'); grid.innerHTML = '';
+            DATA[cat].forEach((p, i) => {
+                const div = document.createElement('div');
+                div.className = "glass p-6 rounded-[2rem] border border-white/5 flex flex-col hover:border-yellow-600/50 hover:translate-y-[-5px] transition-all menu-item-anim";
+                div.style.animationDelay = `${i * 0.03}s`;
+                div.innerHTML = `
+                    <span class="text-4xl mb-3">${p.s}</span>
+                    <h4 class="text-[13px] font-black text-yellow-500 uppercase">${p.n}</h4>
+                    <p class="text-[10px] text-zinc-400 my-4 flex-grow italic">${p.t}</p>
+                    <div class="flex justify-between items-center mt-4">
+                        <span class="text-lg font-black">${p.p.toLocaleString()}</span>
+                        <button onclick="addCart('${p.n}', ${p.p}, '${p.s}')" class="w-10 h-10 bg-yellow-600/10 text-yellow-500 rounded-xl font-black hover:bg-yellow-600 hover:text-black transition-all">+</button>
+                    </div>`;
+                grid.appendChild(div);
+            });
+        }
+
+        function addCart(n, p, s, isGift = false) { 
+            cart.push({n, p, s, isGift}); 
+            updateUI(); 
+            if(!isGift) confetti({ particleCount: 15, spread: 20, origin: { y: 0.8 }, colors: ['#D4AF37'] });
+        }
+
+        function updateUI() {
+            const list = document.getElementById('cart-list');
+            let total = 0; list.innerHTML = '';
+            cart.forEach((it, i) => {
+                total += it.p;
+                list.innerHTML += `
+                    <div class="flex justify-between items-center bg-white/5 p-3 rounded-xl border ${it.isGift ? 'border-yellow-600' : 'border-white/5'}">
+                        <span>${it.s} ${it.isGift ? '🎁' : ''} ${it.n}</span>
+                        <div class="flex items-center gap-3">
+                            <span>${it.p === 0 ? 'FREE' : it.p.toLocaleString()}</span>
+                            <button onclick="cart.splice(${i},1);updateUI()" class="text-red-500">✕</button>
+                        </div>
+                    </div>`;
+            });
+            document.getElementById('total-sum').innerText = total.toLocaleString();
+        }
+
+        function confirmOrder() {
+            const name = document.getElementById('uName').value;
+            const phone = document.getElementById('uPhone').value;
+            let realTotal = cart.filter(x => !x.isGift).reduce((a, b) => a + b.p, 0);
+
+            if(!name || !phone || !cart.length) return alert("Ma'lumotlarni to'ldiring!");
+
+            // HAR 300,000 UZS UCHUN 1 TA TICKET
+            if(realTotal >= 300000) {
+                let newTickets = Math.floor(realTotal / 300000);
+                tickets += newTickets;
+                document.getElementById('t-val').innerText = tickets;
+                document.getElementById('wheel-card').classList.remove('hidden');
+                document.getElementById('wheel-card').style.opacity = "1";
+                alert(`Tabriklaymiz! Sizga ${newTickets} ta aylantirish imkoniyati berildi! 🎁`);
+            } else {
+                alert("Buyurtmangiz qabul qilindi! ✅");
+                if(tickets === 0) { cart = []; updateUI(); }
+            }
+        }
+
+        function spinNow() {
+            if(isSpinning || tickets <= 0) return;
+            
+            isSpinning = true;
+            tickets -= 1;
+            document.getElementById('t-val').innerText = tickets;
+            
+            const btn = document.getElementById('spin-btn');
+            btn.disabled = true; 
+            btn.innerText = "KUTING...";
+            document.getElementById('win-msg').innerText = "";
+
+            const deg = Math.floor(Math.random() * 3600) + 2160;
+            document.getElementById('wheel').style.transform = `rotate(${deg}deg)`;
+
+            setTimeout(() => {
+                const idx = Math.floor((360 - (deg % 360)) / 36) % 10;
+                const prize = prizes[idx];
+                
+                if (prize.type !== "none") {
+                    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                    if (prize.type === "food") addCart(prize.n, 0, prize.s, true);
+                    if (prize.type === "coin") {
+                        coins += parseInt(prize.n);
+                        document.getElementById('coin-val').innerText = coins;
+                    }
+                    document.getElementById('win-msg').innerText = "YUTUQ: " + prize.n;
+                } else {
+                    document.getElementById('win-msg').innerText = "OMAD KELMADI 💀";
+                }
+
+                isSpinning = false;
+                btn.disabled = false;
+                btn.innerText = "AYLANTIRISH";
+
+                if(tickets <= 0) {
+                    setTimeout(() => {
+                        document.getElementById('wheel-card').style.opacity = "0.5";
+                        alert("Barcha chiptalar ishlatildi!");
+                        // Savatni faqat yutuqlar olingandan keyin tozalash (ixtiyoriy)
+                    }, 1000);
+                }
+            }, 4100);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
